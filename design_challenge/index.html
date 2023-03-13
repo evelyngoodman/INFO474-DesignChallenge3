@@ -8,23 +8,16 @@
 </head>
 <body>
     <div id="main">
-        <svg width="300" height="600" style="border: 1px solid #777;">
-        </svg>
         <div>
-            <label for="categorySelect">City: </label>
+            <label for="categorySelect">Select: </label>
             <select class="custom-select" id="categorySelect" onchange="onCategoryChanged()">
-              <option selected value="clt">Charlotte, North Carolina</option>
-              <option value="cqt">Charlottesville, Virginia</option>
-              <option value="ind">Indianapolis, Indiana</option>
-              <option value="jax">Jacksonville, Florida</option>
-              <option value="khou">Houston, Texas</option>
-              <option value="knyc">New York City, New York</option>
-              <option value="ksea">Seattle, Washington</option>
-              <option value="mdw">Chicago, Illinois</option>
-              <option value="phl">Philedelphia, Pennsylvania</option>
-              <option value="phc">Phoenix, Arizona</option>
+              <option selected value="actual_mean_temp">Average Temperature</option>
+              <option value="actual_max_temp">Max. Temperature Per Day</option>
+              <option value="actual_min_temp">Min. Temperature Per Day</option>
             </select>
         </div>
+        <svg width="660" height="600">
+        </svg>
     </div>
 </body>
 <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>

@@ -2,18 +2,9 @@
 function onCategoryChanged() {
     var select = d3.select('#categorySelect').node();
     // Get current value of select element
-    var city = select.options[select.selectedIndex].value;
+    var filterKey = select.options[select.selectedIndex].value;
     // Update chart with the selected category of letters
-    updateChart(city);
-}
-
-// recall that when data is loaded into memory, numbers are loaded as strings
-// this function helps convert numbers into string during data preprocessing
-function dataPreprocessor(row) {
-    return {
-        letter: row.letter,
-        frequency: +row.frequency
-    };
+    updateChart(filterKey);
 }
 
 var svg = d3.select('svg');
@@ -22,124 +13,85 @@ var svg = d3.select('svg');
 var svgWidth = +svg.attr('width');
 var svgHeight = +svg.attr('height');
 
-var padding = {t: 60, r: 40, b: 30, l: 40};
+var padding = {t: 10, r: 30, b: 30, l: 60};
 
 // Compute chart dimensions
 var chartWidth = svgWidth - padding.l - padding.r;
 var chartHeight = svgHeight - padding.t - padding.b;
 
-// Compute the spacing for bar bands based on all 26 letters
-var barBand = chartHeight / 26;
-var barHeight = barBand * 0.7;
+var parseDate = d3.timeParse('%b %Y');
+var dateDomain = [new Date(2014, 7), new Date(2015, 6)];
 
 // Create a group element for appending chart elements
 var chartG = svg.append('g')
-    .attr('transform', 'translate('+[padding.l, padding.t]+')');
+.attr('transform', 'translate('+[padding.l, padding.t]+')');
 
-// A map with arrays for each category of letter sets
-var cityMap = {
-    'clt': 'Weather_Data/CLT.csv',
-    'sqt': 'Weather_Data/CQT.csv',
-    'ind': 'Weather_Data/IND.csv',
-    'jax': 'Weather_Data/JAX.csv',
-    'khou': 'Weather_Data/KHOU.csv',
-    'knyc': 'Weather_Data/KNYC.csv',
-    'ksea': 'Weather_Data/KSEA.csv',
-    'mdw': 'Weather_Data/MDW.csv',
-    'phl': 'Weather_Data/PHL.csv',
-    'phx': 'Weather_Data/PHX.csv'
-};
-
-d3.csv('letter_freq.csv', dataPreprocessor).then(function(dataset) {
-    // Create global variables here and intialize the chart
-    letters = dataset;
-    console.log(dataset);
-    // **** Your JavaScript code goes here ****
-
-    // <-- Lab Code -->
-    let formatPercent = function(d) {
-        return d*100 + "%";
-    };
-
-    let maxFreq = d3.max(dataset, function(d) { 
-        return +d.frequency;
+d3.csv('KSEA.csv').then(function(dataset) {
+    dataset.forEach(function(d) {
+        d.date = parseDate(d.date);
     });
 
-    xScale = d3.scaleLinear()
-    .domain([0, maxFreq])
-    .range([0, chartWidth]);
+    data = dataset;
 
-    yScale = d3.scaleBand()
-    .range([0, chartHeight])
-    .domain(dataset.map(x => x.letter))
-    .padding(0.1);
+    let max = d3.max(dataset, function(d) { return +d.actual_mean_temp; })
 
-    // let yAxis = chartG.call(d3.axisLeft(yScale).tickSize(0))
-    // .style("class", "y axis")
-    // .call(g => g.select(".domain").remove())
+    xScale = d3.scaleTime()
+    .domain(dateDomain)
+    .range([ 0, chartWidth ]);
 
-    let xAxisTop = d3.axisTop().scale(xScale).ticks(6).tickFormat(formatPercent)
-    let xAxisBottom = d3.axisBottom().scale(xScale).ticks(6).tickFormat(formatPercent)
+    yScale = d3.scaleLinear()
+    .domain([0, max])
+    .range([ chartHeight, 0 ]);
 
-    let axisTop = svg.append('g')
-    .attr('class', 'x axis top')
-    .attr('transform', 'translate('+padding.l+','+(padding.t)+')')
-    .call(xAxisTop)
+    // x axis
+    chartG.append("g")
+    .attr("transform", "translate(0," + chartHeight + ")")
+    .call(d3.axisBottom(xScale));
 
-    let axisBottom = svg.append('g')
-    .attr('class', 'x axis bottom')
-    .attr('transform', 'translate('+padding.l+','+(chartHeight + padding.t)+')')
-    .call(xAxisBottom)
-    // <-- Lab Code -->
+    chartG.append("g")
+    .call(d3.axisLeft(yScale));
 
-    let title = svg.append("text")
-    .attr("class", "axis-label")
-    .attr("x", chartWidth / 1.5)
-    .attr("y", (padding.t / 2))
-    .text('Letter Frequency (%)')
-
-    // Update the chart for all letters to initialize
-    updateChart('clt');
+    // Update the chart
+    updateChart('actual_mean_temp', xScale, yScale);
 });
 
 
-function updateChart(filterKey) {
-    var data = cityMap[filterKey]
+function updateChart(filterKey, xScale, yScale) {
+    // update dataset based on filterKey
+    // var filteredData = data.filter(function(d) {
+    //     return d.filterKey;
+    // });
+    console.log(filterKey)
 
-    var letter = chartG.selectAll('.bars')
-    .data(filteredLetters, function(d){
-        console.log(d)
-        return d;
-    });
+    let lineInterpolator = d3.line()
+    .x(d => xScale(d.date))
+    .y(d => yScale(d.filterKey));
 
-    var letterEnter = letter.enter()
-    .append('g')
-    .attr('class', 'bars');
-
-    console.log(letter)
-
-    letterEnter.merge(letter)
-    .attr('transform', function(d,i) {
-        return 'translate('+[0, i * barBand]+')'
-    });
-
-    letterEnter.append('rect')
-    .attr("width", filteredLetters => xScale(filteredLetters.frequency))
-    .attr("height", barHeight+2)
-    .attr("x", 0)
-    //.attr("y", filteredLetters => yScale(filteredLetters.letter));
-
-    letterEnter.append('text')
-    .attr('class', 'label')
-    .attr('x', -20)
-    .attr('dy', '0.9em') //(letters => yScale(letters.letter)+15)
-    .text(function(d) {
-        console.log(d.letter)
-        return d.letter;
-    });
-
-    letter.exit().remove();
-    // end tutorial
-    
+    // // Set the gradient
+    // chartG.append("linearGradient")
+    // .attr("id", "line-gradient")
+    // .attr("gradientUnits", "userSpaceOnUse")
+    // .attr("x1", 0)
+    // .attr("y1", y(0))
+    // .attr("x2", 0)
+    // .attr("y2", y(max))
+    // .selectAll("stop")
+    //     .dataset([
+    //     {offset: "0%", color: "blue"},
+    //     {offset: "100%", color: "red"}
+    //     ])
+    // .enter().append("stop")
+    //     .attr("offset", function(d) { return d.offset; })
+    //     .attr("stop-color", function(d) { return d.color; });
+  
+    // Add the line
+    chartG.selectAll(".line-plot")
+    .data(data)
+    .enter()
+    .append('path')
+    .attr('class', ".line-plot")
+    .attr('d', lineInterpolator)
+    .attr("stroke", "black") // "url(#line-gradient)" 
+    .attr("stroke-width", 2)
 }
-// Remember code outside of the data callback function will run before the data loads
+// Remember code outside of the dataset callback function will run before the dataset loads
